@@ -1,0 +1,29 @@
+# Datasets and outputs
+data/
+test/
+inference_data/
+nnUNet_results/
+nnUNet_preprocessed/
+nnUNet_raw/
+*.nii.gz
+*.npy
+*.npz
+*.csv
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+nohup.out
+.system_generated/
+
+# Environments
+.env
+.venv
+env/
+venv/
+*.pth

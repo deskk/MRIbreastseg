@@ -1,0 +1,47 @@
+{
+    "BASE_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg",
+    "DATA_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data",
+
+    "PHASE0": {
+        "RAW_INPUT_DIR": "/local/scratch/scratch-hd/desmond/projects/BreastCancerRad/raw_data/13-09-22/pre_processing/NFB Breast MRI",
+        "REGISTERED_OUTPUT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/registered"
+    },
+
+    "PHASE1": {
+        "MODEL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase1_breastdivider/BreastDividerModel",
+        "OUTPUT_MASK_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase1_mask",
+        "OUTPUT_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase1_left",
+        "OUTPUT_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase1_right"
+    },
+
+    "PHASE2": {
+        "OUTPUT_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase2_output/left",
+        "OUTPUT_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase2_output/right",
+        "NNUNET_RAW": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_raw",
+        "NNUNET_PREPROCESSED": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_preprocessed",
+        "NNUNET_RESULTS": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_results"
+    },
+
+    "PHASE3": {
+        "MODEL_BREAST": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/trained_models/breast_model.pth",
+        "MODEL_DV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/trained_models/dv_model.pth",
+        "INFERENCE_IMAGES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/images",
+        "PREDS_BREAST_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/preds_breast",
+        "PREDS_DV_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/preds_dv",
+        "OUTPUT_FGT_VESSEL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/fgt-vessel_fulltorso"
+    },
+
+    "PHASE4": {
+        "OUTPUT_FAT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase4_fat",
+        "OUTPUT_SKIN_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase4_skin",
+        "SKIN_EROSION_RADIUS": [2, 2, 1]
+    },
+
+    "PHASE5": {
+        "OUTPUT_FUSION_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase5_fusion/left",
+        "OUTPUT_FUSION_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase5_fusion/right",
+        "OUTPUT_FIGURES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/phase5_fusion/figures",
+        "OUTPUT_TUMOR_PRESENCE_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/tumor_presence.csv",
+        "OUTPUT_TUMOR_BIRADS_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/data/tumor_and_birads.csv"
+    }
+}

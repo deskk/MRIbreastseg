@@ -1,0 +1,61 @@
+# MRI Breast Segmentation Pipeline
+
+An end-to-end multi-phase deep learning pipeline for Breast MRI analysis, including torso segmentation, tumor segmentation, fibroglandular tissue (FGT) and vessel extraction, and a final multi-label anatomical fusion.
+
+## Pipeline Architecture
+
+The system is logically partitioned into 6 distinct phases (0-5), coordinated by a central `config.json` file.
+
+- **Phase 0: Preprocessing** (`phase0_preprocessing/`)
+  - Uses ANTsPy to align raw multiparametric MRI sequences (T1, T2, DYN) to a common geometric space using rigid, affine, and deformable registration.
+- **Phase 1: BreastDivider** (`phase1_breastdivider/`)
+  - Extracts the full torso mask and splits the MRI laterally into left and right breasts.
+- **Phase 2: MAMA-MIA** (`phase2_mama-mia/`)
+  - Identifies and segments tumors using an nnU-Net ensemble.
+  - Applies a volumetric connected-component noise filter to remove spurious clinical artifacts.
+- **Phase 3: FGT & Vessel Segmentation** (`phase3_fgt-vessel/`)
+  - Extracts fibroglandular tissue (FGT) and dense blood vessels from the entire torso.
+- **Phase 4: Skin & Fat Derivation** (`phase4_skin-fat/`)
+  - Isolates the fat envelope by subtracting features from the BreastDivider mask.
+  - Computes the skin boundary via a posterior-protected 3D morphological erosion algorithm.
+- **Phase 5: Final Fusion** (`phase5_fusion/`)
+  - Hierarchically merges Fat, FGT, Vessels, Tumor, and Skin into a unified multi-label semantic mask.
+  - Generates diagnostic BI-RADS estimates and fused visualization figures.
+
+## Configuration
+
+All absolute paths and critical data directories are managed centrally via `config.json` at the root of the repository.
+
+To adapt the pipeline to a new dataset, **do not modify the python scripts**. Instead, simply update the `DATA_DIR` and `RAW_INPUT_DIR` fields in `config.json` to point to your new imaging directories. The python scripts will dynamically load and parse the required variables.
+
+## Environments
+
+Because this pipeline integrates models built on different deep learning frameworks and iterations of libraries, it strictly requires three distinct Anaconda environments. We have exported these into the `envs/` directory so they can be perfectly recreated.
+
+1. **`breastseg`** 
+   - **Phases:** `Phase 0` and `Phase 1`
+   - **Key Packages:** `antspyx`, `nnunetv2` (for BreastDivider inference)
+   - **Recreate:** `conda env create -f envs/breastseg.yml`
+
+2. **`mamamia`**
+   - **Phases:** `Phase 2`
+   - **Key Packages:** `nnunetv2` (custom MAMA-MIA tumor ensemble configuration), `SimpleITK`
+   - **Recreate:** `conda env create -f envs/mamamia.yml`
+
+3. **`fgt_env`**
+   - **Phases:** `Phase 3`, `Phase 4`, and `Phase 5`
+   - **Key Packages:** `torch`, `monai`, `scikit-image`, `matplotlib`
+   - **Recreate:** `conda env create -f envs/fgt_env.yml`
+
+## Execution
+
+Ensure that you have set up the three Anaconda environments listed above. The wrapper script automatically activates and deactivates the correct environment as it transitions between phases.
+
+To execute the entire pipeline end-to-end, simply run the wrapper script:
+```bash
+chmod +x run_production_pipeline.sh
+./run_production_pipeline.sh
+```
+
+## Outputs
+Outputs are cleanly organized under the `data/` directory (ignored by git). Final results including `tumor_presence.csv`, BI-RADS measurements, and fused `.nii.gz` volumes are found in `data/phase5_fusion/`.

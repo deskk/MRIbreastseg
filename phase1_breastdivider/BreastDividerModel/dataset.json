@@ -1,0 +1,16 @@
+{
+    "channel_names": {
+        "0": "MR"
+    },
+    "description": "BreastDivider: A Large-Scale Dataset for Left–Right Breast MRI Segmentation",
+    "file_ending": ".nii.gz",
+    "labels": {
+        "background": 0,
+        "left": 1,
+        "right": 2
+    },
+    "licence": "CC BY-NC-SA 4.0",
+    "numTraining": 13752,
+    "reference": "Rokuss, M., Hamm, B., Kirchhoff, Y., & Maier-Hein, K. (2025). Divide and Conquer: A Large-Scale Dataset and Model for Left-Right Breast MRI Segmentation. arXiv preprint arXiv:2507.13830.",
+    "release": "July 2025"
+}

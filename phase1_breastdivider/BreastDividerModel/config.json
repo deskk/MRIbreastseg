@@ -1,0 +1,7 @@
+{
+  "model_type": "nnUNet",
+  "modality": "MRI",
+  "task": "Breast Segmentation",
+  "reference": "Rokuss, M., Hamm, B., Kirchhoff, Y., & Maier-Hein, K. (2025). Divide and Conquer: A Large-Scale Dataset and Model for Left-Right Breast MRI Segmentation. arXiv preprint arXiv:2507.13830.",
+  "license": "CC BY-NC-SA 4.0"
+}
