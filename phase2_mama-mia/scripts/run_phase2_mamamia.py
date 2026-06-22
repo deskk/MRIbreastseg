@@ -6,20 +6,18 @@ import subprocess
 import shutil
 import numpy as np
 import SimpleITK as sitk
-
-
 import json
+
 def load_config():
     config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../config.json'))
     with open(config_path, 'r') as f:
         return json.load(f)
-config = load_config()
 
+config = load_config()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 INPUT_DIRS = [config["PHASE1"]["OUTPUT_LEFT_DIR"], config["PHASE1"]["OUTPUT_RIGHT_DIR"]]
-
 OUTPUT_DIRS = [config["PHASE2"]["OUTPUT_LEFT_DIR"], config["PHASE2"]["OUTPUT_RIGHT_DIR"]]
 
 TARGET_SPACING = (1.0, 1.0, 1.0)
@@ -31,12 +29,12 @@ def get_dce_sequences(subject_dir):
     
     for f in all_files:
         filename = os.path.basename(f).upper()
-        if "SUB" in filename or "MASK" in filename or "T2" in filename or ("T1" in filename and "DYNAMIC" not in filename):
+        if "SUB" in filename or "MASK" in filename or "T2" in filename or ("T1" in filename and "DYNAMIC" not in filename and "DYN" not in filename):
             continue
             
         if "PRE" in filename:
             pre_file = f
-        elif "DYNAMIC" in filename:
+        elif "DYNAMIC" in filename or "DYN" in filename:
             post_files.append(f)
             
     post_files.sort()
@@ -82,7 +80,6 @@ def normalize_and_resample(image_path, global_mean, global_std):
     resampler.SetOutputOrigin(normalized_img.GetOrigin())
     resampler.SetOutputDirection(normalized_img.GetDirection())
     resampler.SetInterpolator(sitk.sitkBSpline)
-    # Background pixel should ideally be minimum value
     resampler.SetDefaultPixelValue(float(np.min(sitk.GetArrayViewFromImage(normalized_img))))
     
     final_img = resampler.Execute(normalized_img)
@@ -96,7 +93,6 @@ def process_directory(input_dir, output_dir):
         valid_subjects = []
         
         for subj in subjects:
-            # SKIP LOGIC
             expected_mask = os.path.join(output_dir, subj, f"{subj}_MAMAMIA_Mask.nii.gz")
             if os.path.exists(expected_mask):
                 logging.info(f"Skipping {subj}, Phase 2 mask already exists.")
@@ -114,18 +110,14 @@ def process_directory(input_dir, output_dir):
                 all_dce.append(pre_file)
                 
             logging.info(f"Processing {subj}...")
-            # 1. Global Z-Score stats
             mean, std = compute_global_statistics(all_dce)
             
-            # 2. Process 1st POST sequence
             first_post = post_files[0]
             preprocessed_img = normalize_and_resample(first_post, mean, std)
             
-            # 3. Save to temp folder formatted for nnUNet
             in_file = os.path.join(temp_in, f"{subj}_0000.nii.gz")
             sitk.WriteImage(preprocessed_img, in_file)
             
-            # ALSO save to final output directory for manual validation!
             final_subj_dir = os.path.join(output_dir, subj)
             os.makedirs(final_subj_dir, exist_ok=True)
             final_in_path = os.path.join(final_subj_dir, f"{subj}_MAMAMIA_Input_1stPOST.nii.gz")
@@ -149,5 +141,31 @@ def process_directory(input_dir, output_dir):
         ]
         
         env = os.environ.copy()
-        env["nnUNet_raw"] = config["PHASE2"]["NNUNET_RAW"]:
+        env["nnUNet_raw"] = config["PHASE2"]["NNUNET_RAW"]
+        env["nnUNet_preprocessed"] = config["PHASE2"]["NNUNET_PREPROCESSED"]
+        env["nnUNet_results"] = config["PHASE2"]["NNUNET_RESULTS"]
+        
+        subprocess.run(cmd, env=env, check=True)
+        
+        for subj in valid_subjects:
+            out_file = os.path.join(temp_out, f"{subj}.nii.gz")
+            if os.path.exists(out_file):
+                final_subj_dir = os.path.join(output_dir, subj)
+                os.makedirs(final_subj_dir, exist_ok=True)
+                final_path = os.path.join(final_subj_dir, f"{subj}_MAMAMIA_Mask.nii.gz")
+                shutil.copy(out_file, final_path)
+                logging.info(f"Saved {final_path}")
+            else:
+                logging.error(f"Failed to generate output for {subj}")
+
+def main():
+    for in_dir, out_dir in zip(INPUT_DIRS, OUTPUT_DIRS):
+        if not os.path.exists(in_dir):
+            logging.warning(f"Input directory does not exist: {in_dir}")
+            continue
+            
+        logging.info(f"\n=== Processing Directory: {in_dir} ===")
+        process_directory(in_dir, out_dir)
+
+if __name__ == "__main__":
     main()
