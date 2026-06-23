@@ -47,9 +47,14 @@ def main():
         # Prediction might be (X, Y, Z, 3) where channels are background, vessel, fgt?
         # Actually usually argmax is already applied, so it's (X, Y, Z) with labels 0, 1, 2.
         if len(arr.shape) == 4:
-            arr = np.argmax(arr, axis=-1)
+            # Classes are on the first axis (n_classes, x, y, z)
+            arr = np.argmax(arr, axis=0)
             
         arr = inverse_transform(arr)
+        
+        orig_shape = sitk.GetArrayFromImage(ref_img).shape
+        arr = arr[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        
         arr = arr.astype(np.uint8)
         
         out_img = sitk.GetImageFromArray(arr)

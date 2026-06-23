@@ -43,6 +43,13 @@ def main():
         arr = normalize_image(arr)
         arr = zscore_image(arr)
         
+        # Pad if smaller than 96 (predict.py expects at least 96x96x96)
+        pad_0 = max(0, 96 - arr.shape[0])
+        pad_1 = max(0, 96 - arr.shape[1])
+        pad_2 = max(0, 96 - arr.shape[2])
+        if pad_0 > 0 or pad_1 > 0 or pad_2 > 0:
+            arr = np.pad(arr, ((0, pad_0), (0, pad_1), (0, pad_2)), mode='constant', constant_values=np.min(arr))
+            
         # Save as float32
         arr = arr.astype(np.float32)
         np.save(os.path.join(out_dir, f"{subj}.npy"), arr)
