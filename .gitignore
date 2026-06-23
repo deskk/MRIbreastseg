@@ -27,3 +27,4 @@ nohup.out
 env/
 venv/
 *.pth
+external/duke_outputs/

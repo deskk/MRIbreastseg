@@ -376,7 +376,8 @@ class Dataset3DRandom(_Dataset3DBase):
             mask_dir = mask_dir,
             additional_input_dir = additional_input_dir,
             transforms = transforms,
-            one_hot_mask = one_hot_mask
+            one_hot_mask = one_hot_mask,
+            image_only = image_only
         )
 
         self.input_dim = input_dim
@@ -595,6 +596,12 @@ def generate_stack_dict(
                 [list_index_count, z_index]
             
             dataset_index_count += 1
+            
+        # Add final box if the end was not reached
+        if z_index + z_input_dim < z_length:
+            box_indicies_dict[dataset_index_count] = \
+                [list_index_count, z_length - z_input_dim]
+            dataset_index_count += 1
         
         list_index_count += 1
 
@@ -609,7 +616,8 @@ class Dataset3DVerticalStack(_Dataset3DBase):
         z_step_size,
         additional_input_dir = None,
         transforms = None,
-        one_hot_mask = False
+        one_hot_mask = False,
+        image_only = False
     ):
         """
         This class samples the full volume by sampling along the z axis a
@@ -630,7 +638,8 @@ class Dataset3DVerticalStack(_Dataset3DBase):
             mask_dir = mask_dir,
             additional_input_dir = additional_input_dir,
             transforms = transforms,
-            one_hot_mask = one_hot_mask
+            one_hot_mask = one_hot_mask,
+            image_only = image_only
         )
 
         self.z_input_dim = z_input_dim
@@ -659,16 +668,19 @@ class Dataset3DVerticalStack(_Dataset3DBase):
             ], 
             axis=0
         )
-        mask_array = np.expand_dims(
-            self.mask_array_list[list_index][
-                :, :, 
-                z_index:z_index + self.z_input_dim
-            ], 
-            axis=0
-        )
+        if not self.image_only:
+            mask_array = np.expand_dims(
+                self.mask_array_list[list_index][
+                    :, :,
+                    z_index:z_index + self.z_input_dim
+                ],
+                axis=0
+            )
+            mask_array = torch.from_numpy(mask_array.copy())
+        else:
+            mask_array = torch.zeros_like(torch.from_numpy(image_array))
 
         image_array = torch.from_numpy(image_array)
-        mask_array = torch.from_numpy(mask_array.copy())
 
         if hasattr(self, 'additional_input_list'):
             additional_input_array = np.expand_dims(
@@ -681,7 +693,7 @@ class Dataset3DVerticalStack(_Dataset3DBase):
             additional_input_array = torch.from_numpy(additional_input_array)
             image_array = torch.cat((image_array, additional_input_array))
 
-        if self.one_hot_mask:
+        if self.one_hot_mask and not self.image_only:
             mask_array = convert_to_one_hot(mask_array)
 
         return transform_using_torchio(image_array, mask_array, self.transforms)

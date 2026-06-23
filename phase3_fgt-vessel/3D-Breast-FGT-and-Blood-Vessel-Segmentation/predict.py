@@ -37,7 +37,7 @@ def get_args():
 
 if __name__ == '__main__':
     from dataset_3d import *
-    from model_utils import pred_and_save_masks_3d_simple, pred_and_save_masks_3d_divided
+    from model_utils import pred_and_save_masks_3d_simple, pred_and_save_masks_3d_stacked
     from unet import UNet3D
 
     args = get_args()
@@ -86,28 +86,29 @@ if __name__ == '__main__':
 
     else:
 
-        x_y_divisions = 8
-        z_division = 3
+        z_input_dim = 96
+        z_step_size = 96
 
         transforms = tio.Compose([
+            tio.Resize((344, 344, z_input_dim))
         ])
 
-        dataset = Dataset3DDivided(
+        dataset = Dataset3DVerticalStack(
             image_dir = args.image_dir,
             mask_dir = None,
             additional_input_dir = args.input_mask_dir,
-            input_dim = 96,
-            x_y_divisions = x_y_divisions,
-            z_division = z_division,
+            z_input_dim = z_input_dim,
+            z_step_size = z_step_size,
             transforms = transforms,
             one_hot_mask = True,
             image_only = True
         )
 
-        pred_and_save_masks_3d_divided(
-            unet,
-            args.model_save_path,
-            dataset,
-            n_classes,
-            args.save_masks_dir
+        pred_and_save_masks_3d_stacked(
+            saved_model_path = args.model_save_path,
+            dataset = dataset,
+            unet = unet,
+            n_classes = n_classes,
+            n_channels = n_channels,
+            save_masks_dir = args.save_masks_dir
         )

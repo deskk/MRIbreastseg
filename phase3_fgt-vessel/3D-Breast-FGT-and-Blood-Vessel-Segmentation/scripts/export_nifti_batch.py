@@ -53,7 +53,7 @@ def main():
         arr = inverse_transform(arr)
         
         orig_shape = sitk.GetArrayFromImage(ref_img).shape
-        arr = arr[:orig_shape[0], :orig_shape[1], :orig_shape[2]]
+        assert arr.shape == orig_shape, f"Shape mismatch: {arr.shape} vs {orig_shape}"
         
         arr = arr.astype(np.uint8)
         
