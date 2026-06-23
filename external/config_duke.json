@@ -9,14 +9,11 @@
 
     "PHASE1": {
         "MODEL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase1_breastdivider/BreastDividerModel",
-        "OUTPUT_MASK_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase1_mask",
-        "OUTPUT_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase1_left",
-        "OUTPUT_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase1_right"
+        "OUTPUT_MASK_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase1_mask"
     },
 
     "PHASE2": {
-        "OUTPUT_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase2_output/left",
-        "OUTPUT_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase2_output/right",
+        "OUTPUT_FULL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase2_mamamia_fulltorso",
         "NNUNET_RAW": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_raw",
         "NNUNET_PREPROCESSED": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_preprocessed",
         "NNUNET_RESULTS": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase2_mama-mia/nnUNet/nnunetv2/nnUNet_results"
@@ -40,6 +37,8 @@
     "PHASE5": {
         "OUTPUT_FUSION_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase5_fusion/left",
         "OUTPUT_FUSION_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase5_fusion/right",
+        "OUTPUT_SPLIT_MRI_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase5_split_mri/left",
+        "OUTPUT_SPLIT_MRI_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase5_split_mri/right",
         "OUTPUT_FIGURES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase5_fusion/figures",
         "OUTPUT_TUMOR_PRESENCE_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/tumor_presence.csv",
         "OUTPUT_TUMOR_BIRADS_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/tumor_and_birads.csv"

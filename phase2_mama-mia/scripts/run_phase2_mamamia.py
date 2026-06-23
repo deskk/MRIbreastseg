@@ -17,8 +17,8 @@ config = load_config()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-INPUT_DIRS = [config["PHASE1"]["OUTPUT_LEFT_DIR"], config["PHASE1"]["OUTPUT_RIGHT_DIR"]]
-OUTPUT_DIRS = [config["PHASE2"]["OUTPUT_LEFT_DIR"], config["PHASE2"]["OUTPUT_RIGHT_DIR"]]
+INPUT_DIR = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]
+OUTPUT_DIR = config["PHASE2"]["OUTPUT_FULL_DIR"]
 
 TARGET_SPACING = (1.0, 1.0, 1.0)
 
@@ -159,13 +159,12 @@ def process_directory(input_dir, output_dir):
                 logging.error(f"Failed to generate output for {subj}")
 
 def main():
-    for in_dir, out_dir in zip(INPUT_DIRS, OUTPUT_DIRS):
-        if not os.path.exists(in_dir):
-            logging.warning(f"Input directory does not exist: {in_dir}")
-            continue
-            
-        logging.info(f"\n=== Processing Directory: {in_dir} ===")
-        process_directory(in_dir, out_dir)
+    if not os.path.exists(INPUT_DIR):
+        logging.warning(f"Input directory does not exist: {INPUT_DIR}")
+        return
+        
+    logging.info(f"\n=== Processing Directory: {INPUT_DIR} ===")
+    process_directory(INPUT_DIR, OUTPUT_DIR)
 
 if __name__ == "__main__":
     main()

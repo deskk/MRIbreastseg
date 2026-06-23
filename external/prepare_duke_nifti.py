@@ -2,6 +2,7 @@ import os
 import csv
 import glob
 import SimpleITK as sitk
+import ants
 
 def main():
     metadata_path = '/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels/subjects/manifest-1768961156411/metadata.csv'
@@ -22,6 +23,8 @@ def main():
     print(f"Found {len(subjects)} subjects in metadata.")
 
     success_count = 0
+    # To test one subject as requested, we can break after the first success, or process all. The script will be run by run_duke_full_pipeline.sh which might just run on whatever is there.
+    # The user said "the goal is to test one subject from end to end". Let's restrict it to the first subject only for testing.
     for subj, rows in subjects.items():
         print(f"Processing {subj}...")
         
@@ -67,7 +70,7 @@ def main():
         if os.path.exists(out_pre) and os.path.exists(out_dyn):
             print(f"  Already processed {subj}.")
             success_count += 1
-            continue
+            break # Just one subject!
 
         try:
             # Read PRE
@@ -78,25 +81,50 @@ def main():
                 print(f"  No DICOM files found in PRE dir: {full_pre_dir}")
                 continue
             reader.SetFileNames(dicom_names)
-            pre_img = reader.Execute()
-            sitk.WriteImage(pre_img, out_pre)
-
-            # Save an identical copy for T1 structural placeholder if needed by Phase 1
-            sitk.WriteImage(pre_img, out_t1)
+            pre_img_sitk = reader.Execute()
 
             # Read DYN
             full_dyn_dir = os.path.normpath(os.path.join(dataset_root, dyn_dir.lstrip('./')))
-            reader = sitk.ImageSeriesReader()
             dicom_names = reader.GetGDCMSeriesFileNames(full_dyn_dir)
             if not dicom_names:
                 print(f"  No DICOM files found in DYN dir: {full_dyn_dir}")
                 continue
             reader.SetFileNames(dicom_names)
-            dyn_img = reader.Execute()
-            sitk.WriteImage(dyn_img, out_dyn)
+            dyn_img_sitk = reader.Execute()
             
+            # Save PRE directly
+            sitk.WriteImage(pre_img_sitk, out_pre)
+            sitk.WriteImage(pre_img_sitk, out_t1) # Placeholder
+
+            print(f"  Performing ANTs SyN Registration for {subj}...")
+            # Use ants.image_read to load directly from the written file to avoid direction matrix shape issues
+            fixed_img = ants.image_read(out_pre)
+            
+            # Write DYN to a temp file and read it back
+            temp_dyn = os.path.join(subj_out, f"{subj}_DYN_temp.nii.gz")
+            sitk.WriteImage(dyn_img_sitk, temp_dyn)
+            moving_dyn_img = ants.image_read(temp_dyn)
+            
+            # Deformable SyN with MI
+            reg_dyn = ants.registration(
+                fixed=fixed_img, 
+                moving=moving_dyn_img, 
+                type_of_transform='SyN',
+                aff_metric='mattes',
+                syn_metric='mattes'
+            )
+            reg_dyn_img = reg_dyn['warpedmovout']
+            
+            # Save warped directly using ANTs
+            ants.image_write(reg_dyn_img, out_dyn)
+            
+            # Clean up temp
+            if os.path.exists(temp_dyn):
+                os.remove(temp_dyn)
+
             success_count += 1
-            print(f"  Successfully converted {subj}.")
+            print(f"  Successfully registered and converted {subj}.")
+            break # Just one subject for end-to-end test
         except Exception as e:
             print(f"  Error processing {subj}: {e}")
 

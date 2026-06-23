@@ -14,7 +14,7 @@ config = load_config()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-OUTPUT_DIRS = [config["PHASE2"]["OUTPUT_LEFT_DIR"], config["PHASE2"]["OUTPUT_RIGHT_DIR"]]
+OUTPUT_DIR = config["PHASE2"]["OUTPUT_FULL_DIR"]
 
 # Minimum volume threshold in mm^3. 
 # Since our images are resampled to 1x1x1 mm, 1 voxel = 1 mm^3.
@@ -66,11 +66,8 @@ def filter_noise(mask_path):
 
 def main():
     logging.info(f"Starting Connected Component Volumetric Filtering (Threshold: {MIN_VOLUME_MM3} mm^3)")
-    for out_dir in OUTPUT_DIRS:
-        if not os.path.exists(out_dir):
-            continue
-            
-        mask_files = glob.glob(os.path.join(out_dir, "*", "*_MAMAMIA_Mask.nii.gz"))
+    if os.path.exists(OUTPUT_DIR):
+        mask_files = glob.glob(os.path.join(OUTPUT_DIR, "*", "*_MAMAMIA_Mask.nii.gz"))
         
         for mask_path in mask_files:
             cleaned_mask = filter_noise(mask_path)
