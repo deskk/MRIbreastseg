@@ -1,5 +1,5 @@
 # Datasets and outputs
-data/
+data-uu/
 test/
 inference_data/
 nnUNet_results/
@@ -27,7 +27,7 @@ nohup.out
 env/
 venv/
 *.pth
-external/duke_outputs/
+external-duke-fgt/duke_outputs/
 
 # Added rules
 *.done
@@ -37,5 +37,5 @@ PyHAS-matfiles/
 *outputs/
 slurm/
 validation/
-external/duke_visuals/
-external/log_tail.txt
+external-duke-fgt/duke_visuals/
+external-duke-fgt/log_tail.txt

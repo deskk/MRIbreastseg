@@ -5,8 +5,8 @@ import glob
 def main():
     metadata_path = '/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels/subjects/manifest-1768961156411/metadata.csv'
     dataset_root = '/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels/subjects/manifest-1768961156411'
-    output_dir = '/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase0'
-    csv_out_path = '/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_file_mapping.csv'
+    output_dir = '/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/phase0'
+    csv_out_path = '/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_file_mapping.csv'
 
     subjects = {}
     with open(metadata_path, 'r') as f:

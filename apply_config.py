@@ -12,8 +12,8 @@ config = load_config()
 
 FILES = [
     {
-        "path": "phase1_breastdivider/scripts/run_phase1_inference.py",
-        "rel": "../../",
+        "path": "pipeline/phase1_breastdivider/scripts/run_phase1_inference.py",
+        "rel": "../../../",
         "replacements": [
             (r'INPUT_DIR = ".*"', 'INPUT_DIR = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]'),
             (r'OUTPUT_DIR = ".*"', 'OUTPUT_DIR = config["PHASE1"]["OUTPUT_MASK_DIR"]'),
@@ -21,8 +21,8 @@ FILES = [
         ]
     },
     {
-        "path": "phase1_breastdivider/scripts/split_breasts_midline.py",
-        "rel": "../../",
+        "path": "pipeline/phase1_breastdivider/scripts/split_breasts_midline.py",
+        "rel": "../../../",
         "replacements": [
             (r'MASK_DIR = ".*"', 'MASK_DIR = config["PHASE1"]["OUTPUT_MASK_DIR"]'),
             (r'REGISTERED_DIR = ".*"', 'REGISTERED_DIR = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]'),
@@ -31,8 +31,8 @@ FILES = [
         ]
     },
     {
-        "path": "phase2_mama-mia/scripts/run_phase2_mamamia.py",
-        "rel": "../../",
+        "path": "pipeline/phase2_mama-mia/scripts/run_phase2_mamamia.py",
+        "rel": "../../../",
         "replacements": [
             (r'INPUT_DIRS = \[.*?\]', 'INPUT_DIRS = [config["PHASE1"]["OUTPUT_LEFT_DIR"], config["PHASE1"]["OUTPUT_RIGHT_DIR"]]'),
             (r'OUTPUT_DIRS = \[.*?\]', 'OUTPUT_DIRS = [config["PHASE2"]["OUTPUT_LEFT_DIR"], config["PHASE2"]["OUTPUT_RIGHT_DIR"]]'),
@@ -42,15 +42,15 @@ FILES = [
         ]
     },
     {
-        "path": "phase2_mama-mia/scripts/postprocess_filter_noise.py",
-        "rel": "../../",
+        "path": "pipeline/phase2_mama-mia/scripts/postprocess_filter_noise.py",
+        "rel": "../../../",
         "replacements": [
             (r'OUTPUT_DIRS = \[.*?\]', 'OUTPUT_DIRS = [config["PHASE2"]["OUTPUT_LEFT_DIR"], config["PHASE2"]["OUTPUT_RIGHT_DIR"]]')
         ]
     },
     {
-        "path": "phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/scripts/preprocess_batch.py",
-        "rel": "../../../",
+        "path": "pipeline/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/scripts/preprocess_batch.py",
+        "rel": "../../../../",
         "replacements": [
             (r'phase1_masks_dir = ".*"', 'phase1_masks_dir = config["PHASE1"]["OUTPUT_MASK_DIR"]'),
             (r'registered_dir = ".*"', 'registered_dir = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]'),
@@ -59,8 +59,8 @@ FILES = [
         ]
     },
     {
-        "path": "phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/scripts/export_nifti_batch.py",
-        "rel": "../../../",
+        "path": "pipeline/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/scripts/export_nifti_batch.py",
+        "rel": "../../../../",
         "replacements": [
             (r'registered_dir = ".*"', 'registered_dir = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]'),
             (r'preds_breast_dir = ".*"', 'preds_breast_dir = config["PHASE3"]["PREDS_BREAST_DIR"]'),
@@ -69,8 +69,8 @@ FILES = [
         ]
     },
     {
-        "path": "phase5_fusion/scripts/calculate_birads.py",
-        "rel": "../../",
+        "path": "pipeline/phase5_fusion/scripts/calculate_birads.py",
+        "rel": "../../../",
         "replacements": [
             (r'base_data_dir = ".*"', 'base_data_dir = config["DATA_DIR"]'),
             (r'fgt_dir = os\.path\.join\(base_data_dir, "fgt-vessel_fulltorso"\)', 'fgt_dir = config["PHASE3"]["OUTPUT_FGT_VESSEL_DIR"]'),
@@ -79,8 +79,8 @@ FILES = [
         ]
     },
     {
-        "path": "phase5_fusion/scripts/generate_figures.py",
-        "rel": "../../",
+        "path": "pipeline/phase5_fusion/scripts/generate_figures.py",
+        "rel": "../../../",
         "replacements": [
             (r'base_data_dir = ".*"', 'base_data_dir = config["DATA_DIR"]'),
             (r'phase1_dir = os\.path\.join\(base_data_dir, "phase1_mask"\)', 'phase1_dir = config["PHASE1"]["OUTPUT_MASK_DIR"]'),
