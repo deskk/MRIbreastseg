@@ -10,26 +10,6 @@ def load_config():
     with open(config_path, 'r') as f:
         return json.load(f)
 
-def get_padded_bbox(image, label, padding=20):
-    stats = sitk.LabelShapeStatisticsImageFilter()
-    stats.Execute(image)
-    if not stats.HasLabel(label):
-        return None
-    bbox = list(stats.GetBoundingBox(label))
-    # bbox: (startX, startY, startZ, sizeX, sizeY, sizeZ)
-    for i in range(3):
-        start = max(0, bbox[i] - padding)
-        end = min(image.GetSize()[i], bbox[i] + bbox[i+3] + padding)
-        bbox[i] = start
-        bbox[i+3] = end - start
-    return tuple(bbox)
-
-def crop_image(image, bbox):
-    cropper = sitk.RegionOfInterestImageFilter()
-    cropper.SetIndex(bbox[0:3])
-    cropper.SetSize(bbox[3:6])
-    return cropper.Execute(image)
-
 def main():
     config = load_config()
     
@@ -62,6 +42,10 @@ def main():
         
     subjects = [d for d in os.listdir(bd_dir) if os.path.isdir(os.path.join(bd_dir, d))]
     
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = [s for s in subjects if s in test_subjects]
+    
     with open(tumor_presence_csv, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(['Subject', 'Left_Tumor_Present', 'Right_Tumor_Present'])
@@ -76,9 +60,12 @@ def main():
             bd_full = sitk.ReadImage(bd_files[0])
             
             # Load full torso MRI
-            mri_full_path = os.path.join(mri_dir, subj, f"{subj}_DYN_registered.nii.gz")
+            mri_full_path = os.path.join(mri_dir, subj, f"{subj}_DYN1_registered.nii.gz")
             if not os.path.exists(mri_full_path):
-                continue
+                # Fallback to PRE if DYN1 is missing
+                mri_full_path = os.path.join(mri_dir, subj, f"{subj}_PRE_registered.nii.gz")
+                if not os.path.exists(mri_full_path):
+                    continue
             mri_full = sitk.ReadImage(mri_full_path)
             
             # Load full torso FGT-Vessel
@@ -97,19 +84,41 @@ def main():
 
             tumor_status = {'left': False, 'right': False}
 
+            # Find midline
+            label_stats = sitk.LabelShapeStatisticsImageFilter()
+            label_stats.Execute(bd_full)
+
+            if not label_stats.HasLabel(1) or not label_stats.HasLabel(2):
+                print(f"Missing left or right breast labels in mask for {subj}. Skipping.")
+                continue
+
+            bbox_left = label_stats.GetBoundingBox(1)
+            bbox_right = label_stats.GetBoundingBox(2)
+
+            center_x_left = bbox_left[0] + bbox_left[3] / 2.0
+            center_x_right = bbox_right[0] + bbox_right[3] / 2.0
+            mid_x = int((center_x_left + center_x_right) / 2)
+            size_x = bd_full.GetSize()[0]
+
+            if center_x_left < center_x_right:
+                slices = {
+                    'left': slice(0, mid_x),
+                    'right': slice(mid_x, size_x)
+                }
+            else:
+                slices = {
+                    'left': slice(mid_x, size_x),
+                    'right': slice(0, mid_x)
+                }
+
             for side, info in sides_info.items():
                 print(f"  Side: {side}")
                 label = info['label']
+                my_slice = slices[side]
                 
-                # 1. Calculate Padded BBox
-                bbox = get_padded_bbox(bd_full, label)
-                if not bbox:
-                    print(f"    No label {label} found in BD Mask.")
-                    continue
-                    
-                # 2. Crop everything
-                bd_cropped = crop_image(bd_full, bbox)
-                mri_cropped = crop_image(mri_full, bbox)
+                # 1. Crop using midline slices
+                bd_cropped = bd_full[my_slice, :, :]
+                mri_cropped = mri_full[my_slice, :, :]
                 
                 # Zero out contralateral label in BD mask
                 bd_arr = sitk.GetArrayFromImage(bd_cropped)
@@ -118,32 +127,34 @@ def main():
                 # Arrays for fusion
                 fat_arr = np.zeros_like(bd_arr)
                 if fat_full:
-                    fat_cropped = crop_image(fat_full, bbox)
+                    fat_cropped = fat_full[my_slice, :, :]
                     fat_arr = sitk.GetArrayFromImage(fat_cropped)
                     fat_arr[bd_arr == 0] = 0
                     
                 skin_arr = np.zeros_like(bd_arr)
                 if skin_full:
-                    skin_cropped = crop_image(skin_full, bbox)
+                    skin_cropped = skin_full[my_slice, :, :]
                     skin_arr = sitk.GetArrayFromImage(skin_cropped)
                     skin_arr[bd_arr == 0] = 0
                     
                 dv_arr = np.zeros_like(bd_arr)
                 if dv_full:
+                    dv_cropped = dv_full[my_slice, :, :]
                     # Resample dv to bd grid in case of slight origin mismatch
-                    dv_resampled = sitk.Resample(dv_full, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
+                    dv_resampled = sitk.Resample(dv_cropped, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
                     dv_arr = sitk.GetArrayFromImage(dv_resampled)
                     dv_arr[bd_arr == 0] = 0
                     
                 tumor_arr = np.zeros_like(bd_arr)
                 if tumor_full:
-                    tumor_resampled = sitk.Resample(tumor_full, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
+                    tumor_cropped = tumor_full[my_slice, :, :]
+                    tumor_resampled = sitk.Resample(tumor_cropped, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
                     tumor_arr = sitk.GetArrayFromImage(tumor_resampled)
                     tumor_arr[bd_arr == 0] = 0
                     if np.any(tumor_arr == 1):
                         tumor_status[side] = True
 
-                # 3. Fuse Hierarchically
+                # 2. Fuse Hierarchically
                 fused_arr = np.zeros_like(bd_arr, dtype=np.uint8)
                 fused_arr[fat_arr == 1] = 1
                 fused_arr[(bd_arr == label) & (dv_arr == 2)] = 3
@@ -151,7 +162,7 @@ def main():
                 fused_arr[tumor_arr == 1] = 5
                 fused_arr[skin_arr == 1] = 2
 
-                # 4. Save Final Fused Mask and Single-Breast MRI
+                # 3. Save Final Fused Mask and Single-Breast MRI
                 fused_img = sitk.GetImageFromArray(fused_arr)
                 fused_img.CopyInformation(bd_cropped)
                 
@@ -171,3 +182,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

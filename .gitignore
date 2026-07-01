@@ -28,3 +28,14 @@ env/
 venv/
 *.pth
 external/duke_outputs/
+
+# Added rules
+*.done
+*.mat
+PyHAS-matfiles/
+*output/
+*outputs/
+slurm/
+validation/
+external/duke_visuals/
+external/log_tail.txt

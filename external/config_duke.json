@@ -1,6 +1,7 @@
 {
     "BASE_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg",
     "DATA_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs",
+    "TEST_SUBJECTS": [],
 
     "PHASE0": {
         "RAW_INPUT_DIR": "/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels",
@@ -25,7 +26,7 @@
         "INFERENCE_IMAGES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/images",
         "PREDS_BREAST_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/preds_breast",
         "PREDS_DV_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/phase3_fgt-vessel/3D-Breast-FGT-and-Blood-Vessel-Segmentation/inference_data/batch/preds_dv",
-        "OUTPUT_FGT_VESSEL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/fgt-vessel_fulltorso"
+        "OUTPUT_FGT_VESSEL_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase3_fgtvessel"
     },
 
     "PHASE4": {

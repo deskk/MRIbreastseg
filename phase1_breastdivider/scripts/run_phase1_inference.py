@@ -37,6 +37,11 @@ def main():
     
     # Get all subjects
     subjects = [d for d in os.listdir(INPUT_DIR) if os.path.isdir(os.path.join(INPUT_DIR, d))]
+    
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = [s for s in subjects if s in test_subjects]
+        
     print(f"Total subjects found in registered: {len(subjects)}")
     
     with tempfile.TemporaryDirectory() as temp_in, tempfile.TemporaryDirectory() as temp_out:

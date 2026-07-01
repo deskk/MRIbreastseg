@@ -80,7 +80,6 @@ def normalize_and_resample(image_path, global_mean, global_std):
     resampler.SetOutputOrigin(normalized_img.GetOrigin())
     resampler.SetOutputDirection(normalized_img.GetDirection())
     resampler.SetInterpolator(sitk.sitkBSpline)
-    resampler.SetDefaultPixelValue(float(np.min(sitk.GetArrayViewFromImage(normalized_img))))
     
     final_img = resampler.Execute(normalized_img)
     return final_img
@@ -88,6 +87,10 @@ def normalize_and_resample(image_path, global_mean, global_std):
 def process_directory(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     subjects = [d for d in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir, d))]
+    
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = [s for s in subjects if s in test_subjects]
     
     with tempfile.TemporaryDirectory() as temp_in, tempfile.TemporaryDirectory() as temp_out:
         valid_subjects = []
@@ -150,10 +153,27 @@ def process_directory(input_dir, output_dir):
         for subj in valid_subjects:
             out_file = os.path.join(temp_out, f"{subj}.nii.gz")
             if os.path.exists(out_file):
+                pred_mask = sitk.ReadImage(out_file, sitk.sitkUInt8)
+                
+                subj_dir = os.path.join(input_dir, subj)
+                _, post_files = get_dce_sequences(subj_dir)
+                ref_img = sitk.ReadImage(post_files[0])
+                
+                resampler = sitk.ResampleImageFilter()
+                resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+                resampler.SetOutputSpacing(ref_img.GetSpacing())
+                resampler.SetSize(ref_img.GetSize())
+                resampler.SetOutputDirection(ref_img.GetDirection())
+                resampler.SetOutputOrigin(ref_img.GetOrigin())
+                resampler.SetTransform(sitk.Transform())
+                resampler.SetDefaultPixelValue(0)
+                
+                final_mask = resampler.Execute(pred_mask)
+                
                 final_subj_dir = os.path.join(output_dir, subj)
                 os.makedirs(final_subj_dir, exist_ok=True)
                 final_path = os.path.join(final_subj_dir, f"{subj}_MAMAMIA_Mask.nii.gz")
-                shutil.copy(out_file, final_path)
+                sitk.WriteImage(final_mask, final_path)
                 logging.info(f"Saved {final_path}")
             else:
                 logging.error(f"Failed to generate output for {subj}")

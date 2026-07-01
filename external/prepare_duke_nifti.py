@@ -1,13 +1,28 @@
 import os
+import tempfile
+# Force ANTs and Python to use the spacious scratch drive for temp files
+scratch_tmp = '/local/scratch/scratch-hd/desmond/tmp'
+os.makedirs(scratch_tmp, exist_ok=True)
+os.environ['TMPDIR'] = scratch_tmp
+tempfile.tempdir = scratch_tmp
+
 import csv
 import glob
+import json
 import SimpleITK as sitk
 import ants
 
+def load_config():
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../config.json'))
+    with open(config_path, 'r') as f:
+        return json.load(f)
+
 def main():
-    metadata_path = '/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels/subjects/manifest-1768961156411/metadata.csv'
-    dataset_root = '/local/scratch/scratch-hd/desmond/datasets/DUKE-fgtvessels/subjects/manifest-1768961156411'
-    output_dir = '/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external/duke_outputs/phase0'
+    config = load_config()
+    raw_input_dir = config["PHASE0"]["RAW_INPUT_DIR"]
+    dataset_root = os.path.join(raw_input_dir, 'subjects/manifest-1768961156411')
+    metadata_path = os.path.join(dataset_root, 'metadata.csv')
+    output_dir = config["PHASE0"]["REGISTERED_OUTPUT_DIR"]
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -19,6 +34,10 @@ def main():
             if subj not in subjects:
                 subjects[subj] = []
             subjects[subj].append(row)
+
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = {s: rows for s, rows in subjects.items() if s in test_subjects}
 
     print(f"Found {len(subjects)} subjects in metadata.")
 

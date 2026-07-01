@@ -23,6 +23,7 @@ def main():
     out_fgt_vessel = config["PHASE3"]["OUTPUT_FGT_VESSEL_DIR"]
     
     preds_dv_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "inference_data", "batch", "preds_dv")
+    preds_breast_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "inference_data", "batch", "preds_breast")
     
     if not os.path.exists(preds_dv_dir):
         print(f"Predictions dir not found: {preds_dv_dir}")
@@ -36,10 +37,12 @@ def main():
         subj = os.path.basename(pred_file).replace('.npy', '')
         print(f"Exporting NIfTI for {subj}...")
         
-        dyn_path = os.path.join(registered_dir, subj, f"{subj}_DYN_registered.nii.gz")
+        dyn_path = os.path.join(registered_dir, subj, f"{subj}_DYN1_registered.nii.gz")
         if not os.path.exists(dyn_path):
-            print(f"  Missing reference image {dyn_path}")
-            continue
+            dyn_path = os.path.join(registered_dir, subj, f"{subj}_PRE_registered.nii.gz")
+            if not os.path.exists(dyn_path):
+                print(f"  Missing reference image for {subj}")
+                continue
             
         ref_img = sitk.ReadImage(dyn_path)
         
@@ -63,6 +66,17 @@ def main():
         subj_out_dir = os.path.join(out_fgt_vessel, subj)
         os.makedirs(subj_out_dir, exist_ok=True)
         sitk.WriteImage(out_img, os.path.join(subj_out_dir, f"{subj}_dv_mask.nii.gz"))
+        
+        breast_file = os.path.join(preds_breast_dir, f"{subj}.npy")
+        if os.path.exists(breast_file):
+            arr_breast = np.load(breast_file)
+            if len(arr_breast.shape) == 4:
+                arr_breast = np.argmax(arr_breast, axis=0)
+            arr_breast = inverse_transform(arr_breast)
+            arr_breast = arr_breast.astype(np.uint8)
+            out_img_breast = sitk.GetImageFromArray(arr_breast)
+            out_img_breast.CopyInformation(ref_img)
+            sitk.WriteImage(out_img_breast, os.path.join(subj_out_dir, f"{subj}_fgt_mask.nii.gz"))
 
 if __name__ == "__main__":
     main()

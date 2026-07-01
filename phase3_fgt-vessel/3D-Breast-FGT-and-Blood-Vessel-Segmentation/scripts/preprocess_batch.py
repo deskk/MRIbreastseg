@@ -26,10 +26,23 @@ def main():
         
     subjects = [d for d in os.listdir(registered_dir) if os.path.isdir(os.path.join(registered_dir, d))]
     
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = [s for s in subjects if s in test_subjects]
+    
+    out_fgt_vessel = config["PHASE3"]["OUTPUT_FGT_VESSEL_DIR"]
+    
     for subj in subjects:
-        dyn_path = os.path.join(registered_dir, subj, f"{subj}_DYN_registered.nii.gz")
-        if not os.path.exists(dyn_path):
+        expected_dv = os.path.join(out_fgt_vessel, subj, f"{subj}_dv_mask.nii.gz")
+        if os.path.exists(expected_dv):
+            print(f"Skipping {subj}, Phase 3 output already exists.")
             continue
+            
+        dyn_path = os.path.join(registered_dir, subj, f"{subj}_DYN1_registered.nii.gz")
+        if not os.path.exists(dyn_path):
+            dyn_path = os.path.join(registered_dir, subj, f"{subj}_PRE_registered.nii.gz")
+            if not os.path.exists(dyn_path):
+                continue
             
         print(f"Preprocessing {subj} for FGT-Vessel inference...")
         img = sitk.ReadImage(dyn_path)

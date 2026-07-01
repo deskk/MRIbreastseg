@@ -55,7 +55,16 @@ def main():
         
     subjects = [d for d in os.listdir(phase1_mask_dir) if os.path.isdir(os.path.join(phase1_mask_dir, d))]
     
+    test_subjects = config.get("TEST_SUBJECTS", [])
+    if test_subjects:
+        subjects = [s for s in subjects if s in test_subjects]
+    
     for subj in subjects:
+        expected_fat = os.path.join(fat_dir, subj, f"{subj}_fat_mask.nii.gz")
+        if os.path.exists(expected_fat):
+            print(f"Phase 4 [Skin-Fat] Skipping {subj}, output already exists.")
+            continue
+            
         subj_dir = os.path.join(phase1_mask_dir, subj)
         bd_files = glob.glob(os.path.join(subj_dir, "*_BreastDivider_Mask.nii.gz"))
         if not bd_files:
