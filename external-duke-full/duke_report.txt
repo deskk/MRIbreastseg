@@ -1,0 +1,30 @@
+Breast_MRI_001:
+  PRE: ['3.000000-ax dyn pre-93877']
+  POST: ['11.000000-ax dyn 3rd pass-41458', '8.000000-ax dyn 2nd pass-92755', '14.000000-ax dyn 4th pass-47500', '5.000000-ax dyn 1st pass-59529']
+Breast_MRI_002:
+  PRE: []
+  POST: ['ax 3d dyn-37534', 'ax 3d dyn-36797', '600.000000-ax 3d dyn-25442', 'ax 3d dyn-66447']
+Breast_MRI_003:
+  PRE: []
+  POST: ['ax 3d dyn mp-56893', '500.000000-ax 3d dyn mp-06358', 'ax 3d dyn mp-42322', 'ax 3d dyn mp-41874', 'ax 3d dyn mp-46326']
+Breast_MRI_004:
+  PRE: []
+  POST: ['ax 3d dyn-52261', 'ax 3d dyn-91599', '500.000000-ax 3d dyn-57340', 'ax 3d dyn-95896']
+Breast_MRI_005:
+  PRE: ['4.000000-ax dyn pre-51993']
+  POST: ['11.000000-ax dyn 3rd pass-67472', '8.000000-ax dyn 2nd pass-20764', '5.000000-ax dyn 1st pass-38325']
+Breast_MRI_006:
+  PRE: ['4.000000-ax 3d dyn pre-20626']
+  POST: ['6.000000-ax 3d dyn 1st pass-83528', '7.000000-ax 3d dyn 2nd pass-87998', '9.000000-ax 3d dyn 4th pass-99142', '8.000000-ax 3d dyn 3rd pass-47498']
+Breast_MRI_007:
+  PRE: ['4.000000-ax dyn pre-76950']
+  POST: ['8.000000-ax dyn 2nd pass-30923', '11.000000-ax dyn 3rd pass-48922', '5.000000-ax dyn 1st pass-77010']
+Breast_MRI_008:
+  PRE: ['2.000000-ax dyn pre-64921']
+  POST: ['5.000000-ax dyn 1st pass-72045', '11.000000-ax dyn 3rd pass-12157', '16.000000-ax dyn 4th pass-48106', '8.000000-ax dyn 2nd pass-61262']
+Breast_MRI_009:
+  PRE: []
+  POST: ['ax 3d dyn-11899', 'ax 3d dyn-90100', '600.000000-ax 3d dyn-66184', 'ax 3d dyn-77727']
+Breast_MRI_010:
+  PRE: []
+  POST: ['ax 3d dyn-82532', 'ax 3d dyn-98380', 'ax 3d dyn-64577', '600.000000-ax 3d dyn-21046']

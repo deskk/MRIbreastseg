@@ -40,7 +40,7 @@
         "OUTPUT_FUSION_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/phase5_fusion/right",
         "OUTPUT_SPLIT_MRI_LEFT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/phase5_split_mri/left",
         "OUTPUT_SPLIT_MRI_RIGHT_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/phase5_split_mri/right",
-        "OUTPUT_FIGURES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/phase5_fusion/figures",
+        "OUTPUT_FIGURES_DIR": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/duke_visuals",
         "OUTPUT_TUMOR_PRESENCE_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/tumor_presence.csv",
         "OUTPUT_TUMOR_BIRADS_CSV": "/local/scratch/scratch-hd/desmond/research/Summer2026/MRIbreastseg/external-duke-fgt/duke_outputs/tumor_and_birads.csv"
     }

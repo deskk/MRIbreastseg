@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from preprocessing import normalize_image, zscore_image
 
 def load_config():
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../config.json'))
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../config.json'))
     with open(config_path, 'r') as f:
         return json.load(f)
 

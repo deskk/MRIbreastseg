@@ -3,43 +3,67 @@ import glob
 import json
 import numpy as np
 import SimpleITK as sitk
+from scipy.ndimage import distance_transform_edt
 
 def load_config():
     config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../config.json'))
     with open(config_path, 'r') as f:
         return json.load(f)
 
-def protect_posterior_and_erode(mask_arr, target_label, radius):
+def get_skin_mask(bd_arr, radius):
     """
-    Pads the posterior direction (positive Y) to infinity to prevent 
-    the 3D morphological erosion from eroding the chest wall, thereby
-    preventing a 'hollow shell' and creating a proper skin envelope.
+    Finds the posterior-most chest wall envelope using y_max and extrapolates it
+    to bury the chest wall before 3D erosion, leaving the anterior folds exposed.
     """
-    padded_arr = mask_arr.copy()
+    from scipy.ndimage import label
+    fg = ((bd_arr == 1) | (bd_arr == 2)).astype(np.uint8)
+    Z, Y, X = fg.shape
     
-    # Simulate an infinitely deep chest wall towards the posterior (+Y)
-    for z in range(padded_arr.shape[0]):
-        for x in range(padded_arr.shape[2]):
-            y_indices = np.where(padded_arr[z, :, x] == target_label)[0]
+    # 1. Clean fg to find the true chest wall surface robustly using scipy (Fast LCC)
+    labels, num_features = label(fg)
+    if num_features > 0:
+        sizes = np.bincount(labels.ravel())
+        sizes[0] = 0 # Ignore background
+        max_label = sizes.argmax()
+        fg_clean = (labels == max_label).astype(np.uint8)
+    else:
+        fg_clean = fg
+        
+    H = np.full((Z, X), -1, dtype=int)
+    for z in range(Z):
+        for x in range(X):
+            y_indices = np.where(fg_clean[z, :, x])[0]
             if len(y_indices) > 0:
-                y_max = y_indices[-1]
-                padded_arr[z, y_max:, x] = target_label
+                H[z, x] = y_indices[-1] # y_max
+                
+    invalid = (H == -1)
+    if np.any(~invalid):
+        indices = distance_transform_edt(invalid, return_distances=False, return_indices=True)
+        H_extrapolated = H[indices[0], indices[1]]
+    else:
+        H_extrapolated = H
+        
+    padded_arr = np.zeros_like(bd_arr, dtype=np.uint8)
+    padded_arr[fg == 1] = 1
+    
+    for z in range(Z):
+        for x in range(X):
+            y_max = H_extrapolated[z, x]
+            if y_max != -1:
+                padded_arr[z, y_max:, x] = 1
                 
     padded_img = sitk.GetImageFromArray(padded_arr)
-    
     eroder = sitk.BinaryErodeImageFilter()
     eroder.SetKernelRadius(radius)
     eroder.SetKernelType(sitk.sitkBall)
-    
-    # Protect straight, flat boundaries of the image from erosion
     eroder.SetBoundaryToForeground(True)
     
-    eroded_padded_img = eroder.Execute(padded_img == target_label)
+    eroded_padded_img = eroder.Execute(padded_img == 1)
     eroded_arr = sitk.GetArrayFromImage(eroded_padded_img)
     
-    # Skin is original foreground MINUS eroded padded foreground
-    skin_arr = np.zeros_like(mask_arr)
-    skin_arr[(mask_arr == target_label) & (eroded_arr == 0)] = 1
+    skin_arr = np.zeros_like(bd_arr, dtype=np.uint8)
+    skin_arr[(fg == 1) & (eroded_arr == 0)] = 1
+    
     return skin_arr
 
 def main():
@@ -61,9 +85,9 @@ def main():
     
     for subj in subjects:
         expected_fat = os.path.join(fat_dir, subj, f"{subj}_fat_mask.nii.gz")
-        if os.path.exists(expected_fat):
-            print(f"Phase 4 [Skin-Fat] Skipping {subj}, output already exists.")
-            continue
+        # if os.path.exists(expected_fat):
+        #     print(f"Phase 4 [Skin-Fat] Skipping {subj}, output already exists.")
+        #     continue
             
         subj_dir = os.path.join(phase1_mask_dir, subj)
         bd_files = glob.glob(os.path.join(subj_dir, "*_BreastDivider_Mask.nii.gz"))
@@ -85,13 +109,8 @@ def main():
         fat_img.CopyInformation(bd_img)
         sitk.WriteImage(fat_img, os.path.join(fat_out_dir, f"{subj}_fat_mask.nii.gz"))
         
-        # 2. Generate Skin Mask (Combine left and right skin)
-        skin_left_arr = protect_posterior_and_erode(bd_arr, 1, radius)
-        skin_right_arr = protect_posterior_and_erode(bd_arr, 2, radius)
-        
-        skin_combined_arr = np.zeros_like(bd_arr, dtype=np.uint8)
-        skin_combined_arr[skin_left_arr == 1] = 1
-        skin_combined_arr[skin_right_arr == 1] = 1
+        # 2. Generate Skin Mask (Combined logic)
+        skin_combined_arr = get_skin_mask(bd_arr, radius)
         
         skin_out_dir = os.path.join(skin_dir, subj)
         os.makedirs(skin_out_dir, exist_ok=True)

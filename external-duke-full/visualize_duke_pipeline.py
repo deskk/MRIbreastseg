@@ -6,7 +6,7 @@ import SimpleITK as sitk
 from matplotlib.colors import ListedColormap
 
 def load_config():
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'config_duke.json'))
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'config_duke_full.json'))
     with open(config_path, 'r') as f:
         return json.load(f)
 
@@ -58,7 +58,7 @@ def main():
         dv_arr = safe_read_array(os.path.join(config["PHASE3"]["OUTPUT_FGT_VESSEL_DIR"], subj, f"{subj}_dv_mask.nii.gz"))
         fat_arr = safe_read_array(os.path.join(config["PHASE4"]["OUTPUT_FAT_DIR"], subj, f"{subj}_fat_mask.nii.gz"))
         skin_arr = safe_read_array(os.path.join(config["PHASE4"]["OUTPUT_SKIN_DIR"], subj, f"{subj}_skin_mask.nii.gz"))
-        fusion_left_arr = safe_read_array(os.path.join(config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"] + "_native", subj, f"{subj}_final_fusion_native.nii.gz"))
+        fusion_left_arr = safe_read_array(os.path.join(config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"] + "_native", subj, f"{subj}_final_fusion.nii.gz"))
 
         z = get_best_slice(mri_arr)
         mri_slice = mri_arr[z]

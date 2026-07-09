@@ -25,9 +25,23 @@ nohup.out
 .env
 .venv
 env/
+envs/
 venv/
 *.pth
+*.pt
+*.ckpt
+*.h5
+*.hdf5
+*.onnx
+*.nii
+.DS_Store
+.ipynb_checkpoints/
 external-duke-fgt/duke_outputs/
+external-duke-fgt/test_outputs/
+external-duke-fgt/test_phase4/
+external-duke-fgt/test_phase5/
+external-duke-fgt/phase5_fusion_native-res/
+external-duke-full/duke_outputs/
 
 # Added rules
 *.done
@@ -35,7 +49,9 @@ external-duke-fgt/duke_outputs/
 PyHAS-matfiles/
 *output/
 *outputs/
-slurm/
+slurm/data/
+slurm/logs/
+slurm/results/
 validation/
 external-duke-fgt/duke_visuals/
 external-duke-fgt/log_tail.txt

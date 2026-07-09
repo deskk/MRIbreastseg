@@ -10,6 +10,31 @@ def load_config():
     with open(config_path, 'r') as f:
         return json.load(f)
 
+def resample_image(image, is_label=False, target_spacing=(0.25, 0.25, 0.25)):
+    original_spacing = image.GetSpacing()
+    original_size = image.GetSize()
+    
+    new_size = [
+        int(np.round(original_size[0] * (original_spacing[0] / target_spacing[0]))),
+        int(np.round(original_size[1] * (original_spacing[1] / target_spacing[1]))),
+        int(np.round(original_size[2] * (original_spacing[2] / target_spacing[2])))
+    ]
+    
+    resample = sitk.ResampleImageFilter()
+    resample.SetOutputSpacing(target_spacing)
+    resample.SetSize(new_size)
+    resample.SetOutputDirection(image.GetDirection())
+    resample.SetOutputOrigin(image.GetOrigin())
+    resample.SetTransform(sitk.Transform())
+    resample.SetDefaultPixelValue(0)
+    
+    if is_label:
+        resample.SetInterpolator(sitk.sitkNearestNeighbor)
+    else:
+        resample.SetInterpolator(sitk.sitkBSpline)
+        
+    return resample.Execute(image)
+
 def main():
     config = load_config()
     
@@ -22,8 +47,15 @@ def main():
     
     out_mri_left = config["PHASE5"]["OUTPUT_SPLIT_MRI_LEFT_DIR"]
     out_mri_right = config["PHASE5"]["OUTPUT_SPLIT_MRI_RIGHT_DIR"]
-    fusion_left_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"]
-    fusion_right_dir = config["PHASE5"]["OUTPUT_FUSION_RIGHT_DIR"]
+    
+    # We output everything directly to the native-res folder
+    fusion_left_native_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"] + "_native"
+    fusion_right_native_dir = config["PHASE5"]["OUTPUT_FUSION_RIGHT_DIR"] + "_native"
+    
+    # Keep the old variables for compatibility, but point them to native dir
+    fusion_left_dir = fusion_left_native_dir
+    fusion_right_dir = fusion_right_native_dir
+    
     tumor_presence_csv = config["PHASE5"]["OUTPUT_TUMOR_PRESENCE_CSV"]
 
     sides_info = {
@@ -35,6 +67,9 @@ def main():
     os.makedirs(out_mri_right, exist_ok=True)
     os.makedirs(fusion_left_dir, exist_ok=True)
     os.makedirs(fusion_right_dir, exist_ok=True)
+    os.makedirs(fusion_left_native_dir, exist_ok=True)
+    os.makedirs(fusion_right_native_dir, exist_ok=True)
+
     
     if not os.path.exists(bd_dir):
         print("No Phase 1 output found.")
@@ -84,7 +119,7 @@ def main():
 
             tumor_status = {'left': False, 'right': False}
 
-            # Find midline
+            # Find bounding boxes
             label_stats = sitk.LabelShapeStatisticsImageFilter()
             label_stats.Execute(bd_full)
 
@@ -92,83 +127,70 @@ def main():
                 print(f"Missing left or right breast labels in mask for {subj}. Skipping.")
                 continue
 
-            bbox_left = label_stats.GetBoundingBox(1)
-            bbox_right = label_stats.GetBoundingBox(2)
-
-            center_x_left = bbox_left[0] + bbox_left[3] / 2.0
-            center_x_right = bbox_right[0] + bbox_right[3] / 2.0
-            mid_x = int((center_x_left + center_x_right) / 2)
-            size_x = bd_full.GetSize()[0]
-
-            if center_x_left < center_x_right:
-                slices = {
-                    'left': slice(0, mid_x),
-                    'right': slice(mid_x, size_x)
-                }
-            else:
-                slices = {
-                    'left': slice(mid_x, size_x),
-                    'right': slice(0, mid_x)
-                }
-
             for side, info in sides_info.items():
                 print(f"  Side: {side}")
                 label = info['label']
-                my_slice = slices[side]
                 
-                # 1. Crop using midline slices
-                bd_cropped = bd_full[my_slice, :, :]
-                mri_cropped = mri_full[my_slice, :, :]
+                # 1. Fuse Hierarchically in full resolution first
+                # Convert images to arrays for masking
+                bd_arr_full = sitk.GetArrayFromImage(bd_full)
+                bd_arr_full[bd_arr_full != label] = 0
                 
-                # Zero out contralateral label in BD mask
-                bd_arr = sitk.GetArrayFromImage(bd_cropped)
-                bd_arr[bd_arr != label] = 0
-                
-                # Arrays for fusion
-                fat_arr = np.zeros_like(bd_arr)
+                fat_arr = np.zeros_like(bd_arr_full)
                 if fat_full:
-                    fat_cropped = fat_full[my_slice, :, :]
-                    fat_arr = sitk.GetArrayFromImage(fat_cropped)
-                    fat_arr[bd_arr == 0] = 0
+                    fat_arr = sitk.GetArrayFromImage(fat_full)
+                    fat_arr[bd_arr_full == 0] = 0
                     
-                skin_arr = np.zeros_like(bd_arr)
+                skin_arr = np.zeros_like(bd_arr_full)
                 if skin_full:
-                    skin_cropped = skin_full[my_slice, :, :]
-                    skin_arr = sitk.GetArrayFromImage(skin_cropped)
-                    skin_arr[bd_arr == 0] = 0
+                    skin_arr = sitk.GetArrayFromImage(skin_full)
+                    skin_arr[bd_arr_full == 0] = 0
                     
-                dv_arr = np.zeros_like(bd_arr)
+                dv_arr = np.zeros_like(bd_arr_full)
                 if dv_full:
-                    dv_cropped = dv_full[my_slice, :, :]
-                    # Resample dv to bd grid in case of slight origin mismatch
-                    dv_resampled = sitk.Resample(dv_cropped, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
+                    dv_resampled = sitk.Resample(dv_full, bd_full, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_full.GetPixelID())
                     dv_arr = sitk.GetArrayFromImage(dv_resampled)
-                    dv_arr[bd_arr == 0] = 0
+                    dv_arr[bd_arr_full == 0] = 0
                     
-                tumor_arr = np.zeros_like(bd_arr)
+                tumor_arr = np.zeros_like(bd_arr_full)
                 if tumor_full:
-                    tumor_cropped = tumor_full[my_slice, :, :]
-                    tumor_resampled = sitk.Resample(tumor_cropped, bd_cropped, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_cropped.GetPixelID())
+                    tumor_resampled = sitk.Resample(tumor_full, bd_full, sitk.Transform(), sitk.sitkNearestNeighbor, 0.0, bd_full.GetPixelID())
                     tumor_arr = sitk.GetArrayFromImage(tumor_resampled)
-                    tumor_arr[bd_arr == 0] = 0
+                    tumor_arr[bd_arr_full == 0] = 0
                     if np.any(tumor_arr == 1):
                         tumor_status[side] = True
 
-                # 2. Fuse Hierarchically
-                fused_arr = np.zeros_like(bd_arr, dtype=np.uint8)
-                fused_arr[fat_arr == 1] = 1
-                fused_arr[(bd_arr == label) & (dv_arr == 2)] = 3
-                fused_arr[(bd_arr == label) & (dv_arr == 1)] = 4
-                fused_arr[tumor_arr == 1] = 5
-                fused_arr[skin_arr == 1] = 2
+                # Fuse
+                fused_arr_full = np.zeros_like(bd_arr_full, dtype=np.uint8)
+                fused_arr_full[fat_arr == 1] = 1
+                fused_arr_full[(bd_arr_full == label) & (dv_arr == 2)] = 3
+                fused_arr_full[(bd_arr_full == label) & (dv_arr == 1)] = 4
+                fused_arr_full[tumor_arr == 1] = 5
+                fused_arr_full[skin_arr == 1] = 2
 
-                # 3. Save Final Fused Mask and Single-Breast MRI
-                fused_img = sitk.GetImageFromArray(fused_arr)
-                fused_img.CopyInformation(bd_cropped)
+                fused_full_img = sitk.GetImageFromArray(fused_arr_full)
+                fused_full_img.CopyInformation(bd_full)
+
+                # 2. Crop using bounding box
+                bbox = label_stats.GetBoundingBox(label)
+                margin = 5
+                size = bd_full.GetSize()
+                x_start = max(0, bbox[0] - margin)
+                y_start = max(0, bbox[1] - margin)
+                z_start = max(0, bbox[2] - margin)
+                x_end = min(size[0], bbox[0] + bbox[3] + margin)
+                y_end = min(size[1], bbox[1] + bbox[4] + margin)
+                z_end = min(size[2], bbox[2] + bbox[5] + margin)
                 
+                my_slice = (slice(x_start, x_end), slice(y_start, y_end), slice(z_start, z_end))
+                
+                fused_cropped = fused_full_img[my_slice[0], my_slice[1], my_slice[2]]
+                mri_cropped = mri_full[my_slice[0], my_slice[1], my_slice[2]]
+
+                # 3. Save Final Fused Mask and Single-Breast MRI (Native Res)
                 out_fusion_subj = os.path.join(info['out_fusion'], subj)
                 os.makedirs(out_fusion_subj, exist_ok=True)
-                sitk.WriteImage(fused_img, os.path.join(out_fusion_subj, f"{subj}_final_fusion.nii.gz"))
+                sitk.WriteImage(fused_cropped, os.path.join(out_fusion_subj, f"{subj}_final_fusion.nii.gz"))
                 
                 out_mri_subj = os.path.join(info['out_mri'], subj)
                 os.makedirs(out_mri_subj, exist_ok=True)
@@ -182,4 +204,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
