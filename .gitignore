@@ -5,6 +5,10 @@ inference_data/
 nnUNet_results/
 nnUNet_preprocessed/
 nnUNet_raw/
+implants/
+paper_fig/
+duke_sagittal_results/
+utah_sagittal_results/
 *.nii.gz
 *.npy
 *.npz
@@ -55,3 +59,4 @@ slurm/results/
 validation/
 external-duke-fgt/duke_visuals/
 external-duke-fgt/log_tail.txt
+future_fixes.txt

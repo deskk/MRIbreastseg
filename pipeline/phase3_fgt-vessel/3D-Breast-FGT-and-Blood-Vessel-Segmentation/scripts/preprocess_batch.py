@@ -38,7 +38,7 @@ def main():
             print(f"Skipping {subj}, Phase 3 output already exists.")
             continue
             
-        dyn_path = os.path.join(registered_dir, subj, f"{subj}_DYN1_registered.nii.gz")
+        dyn_path = os.path.join(registered_dir, subj, f"{subj}_Post1_registered.nii.gz")
         if not os.path.exists(dyn_path):
             dyn_path = os.path.join(registered_dir, subj, f"{subj}_PRE_registered.nii.gz")
             if not os.path.exists(dyn_path):

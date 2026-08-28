@@ -12,6 +12,8 @@ def load_config():
         return json.load(f)
 
 def calculate_birads(fgt_ratio):
+    if pd.isna(fgt_ratio) or fgt_ratio is None:
+        return None
     if fgt_ratio < 0.25:
         return 'A'
     elif fgt_ratio < 0.50:
@@ -21,41 +23,59 @@ def calculate_birads(fgt_ratio):
     else:
         return 'D'
 
-def get_fgt_ratio(fusion_path):
+def get_fgt_ratios(fusion_path):
     if not os.path.exists(fusion_path):
-        return None
+        return None, None, None
     
     img = sitk.ReadImage(fusion_path)
     arr = sitk.GetArrayFromImage(img)
     
-    # 1 is Fat, 3 is FGT
+    # Masks
+    breast_mask = (arr == 1) | (arr == 3)
+    fgt_mask = (arr == 3)
+    
+    # Volumetric
     fat_pixels = np.sum(arr == 1)
-    fgt_pixels = np.sum(arr == 3)
+    fgt_pixels = np.sum(fgt_mask)
+    total_vol = fat_pixels + fgt_pixels
+    vol_ratio = float(fgt_pixels) / float(total_vol) if total_vol > 0 else 0.0
     
-    total = fat_pixels + fgt_pixels
-    if total == 0:
-        return 0.0
+    # Axial MIP (axis 0)
+    axial_breast = np.any(breast_mask, axis=0)
+    axial_fgt = np.any(fgt_mask, axis=0)
+    axial_breast_area = np.sum(axial_breast)
+    axial_fgt_area = np.sum(axial_fgt)
+    axial_ratio = float(axial_fgt_area) / float(axial_breast_area) if axial_breast_area > 0 else 0.0
     
-    return float(fgt_pixels) / float(total)
+    # Sagittal MIP (axis 2)
+    sagittal_breast = np.any(breast_mask, axis=2)
+    sagittal_fgt = np.any(fgt_mask, axis=2)
+    sagittal_breast_area = np.sum(sagittal_breast)
+    sagittal_fgt_area = np.sum(sagittal_fgt)
+    sagittal_ratio = float(sagittal_fgt_area) / float(sagittal_breast_area) if sagittal_breast_area > 0 else 0.0
+    
+    return vol_ratio, axial_ratio, sagittal_ratio
 
 def main():
     config = load_config()
-    left_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"]
-    right_dir = config["PHASE5"]["OUTPUT_FUSION_RIGHT_DIR"]
+    left_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"] + "_native"
+    right_dir = config["PHASE5"]["OUTPUT_FUSION_RIGHT_DIR"] + "_native"
     
-    in_csv = config["PHASE5"]["OUTPUT_TUMOR_PRESENCE_CSV"]
-    out_csv = config["PHASE5"]["OUTPUT_TUMOR_BIRADS_CSV"]
+    # Use unified summary CSV
+    summary_csv = config["PHASE5"]["OUTPUT_SUMMARY_CSV"]
     
-    if not os.path.exists(in_csv):
-        print("Missing tumor presence CSV!")
+    if not os.path.exists(summary_csv):
+        print(f"Missing summary CSV! Expected at {summary_csv}")
         return
         
-    df = pd.read_csv(in_csv)
+    df = pd.read_csv(summary_csv, dtype={'Subject': str})
     
-    left_ratios = []
-    right_ratios = []
-    left_birads = []
-    right_birads = []
+    results = {
+        'Left_Vol_Ratio': [], 'Left_Axial_Ratio': [], 'Left_Sagittal_Ratio': [],
+        'Left_Vol_Class': [], 'Left_Axial_Class': [], 'Left_Sagittal_Class': [],
+        'Right_Vol_Ratio': [], 'Right_Axial_Ratio': [], 'Right_Sagittal_Ratio': [],
+        'Right_Vol_Class': [], 'Right_Axial_Class': [], 'Right_Sagittal_Class': []
+    }
     
     for _, row in df.iterrows():
         subj = row['Subject']
@@ -63,21 +83,28 @@ def main():
         left_path = os.path.join(left_dir, subj, f"{subj}_final_fusion.nii.gz")
         right_path = os.path.join(right_dir, subj, f"{subj}_final_fusion.nii.gz")
         
-        l_ratio = get_fgt_ratio(left_path)
-        r_ratio = get_fgt_ratio(right_path)
+        l_vol, l_ax, l_sag = get_fgt_ratios(left_path)
+        r_vol, r_ax, r_sag = get_fgt_ratios(right_path)
         
-        left_ratios.append(l_ratio)
-        right_ratios.append(r_ratio)
-        left_birads.append(calculate_birads(l_ratio) if l_ratio is not None else None)
-        right_birads.append(calculate_birads(r_ratio) if r_ratio is not None else None)
+        results['Left_Vol_Ratio'].append(l_vol)
+        results['Left_Axial_Ratio'].append(l_ax)
+        results['Left_Sagittal_Ratio'].append(l_sag)
+        results['Left_Vol_Class'].append(calculate_birads(l_vol))
+        results['Left_Axial_Class'].append(calculate_birads(l_ax))
+        results['Left_Sagittal_Class'].append(calculate_birads(l_sag))
         
-    df['Left_FGT_Ratio'] = left_ratios
-    df['Left_BiRADS'] = left_birads
-    df['Right_FGT_Ratio'] = right_ratios
-    df['Right_BiRADS'] = right_birads
+        results['Right_Vol_Ratio'].append(r_vol)
+        results['Right_Axial_Ratio'].append(r_ax)
+        results['Right_Sagittal_Ratio'].append(r_sag)
+        results['Right_Vol_Class'].append(calculate_birads(r_vol))
+        results['Right_Axial_Class'].append(calculate_birads(r_ax))
+        results['Right_Sagittal_Class'].append(calculate_birads(r_sag))
+        
+    for k, v in results.items():
+        df[k] = v
     
-    df.to_csv(out_csv, index=False)
-    print(f"BiRADS calculation complete. Saved to {out_csv}")
+    df.to_csv(summary_csv, index=False)
+    print(f"BiRADS calculation complete. Saved to {summary_csv}")
 
 if __name__ == "__main__":
     main()

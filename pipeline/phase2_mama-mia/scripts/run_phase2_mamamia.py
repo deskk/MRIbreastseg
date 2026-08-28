@@ -29,12 +29,12 @@ def get_dce_sequences(subject_dir):
     
     for f in all_files:
         filename = os.path.basename(f).upper()
-        if "SUB" in filename or "MASK" in filename or "T2" in filename or ("T1" in filename and "DYNAMIC" not in filename and "DYN" not in filename):
+        if "SUB" in filename or "MASK" in filename or "T2" in filename or ("T1" in filename and "DYNAMIC" not in filename and "DYN" not in filename and "POST" not in filename):
             continue
             
         if "PRE" in filename:
             pre_file = f
-        elif "DYNAMIC" in filename or "DYN" in filename:
+        elif "DYNAMIC" in filename or "DYN" in filename or "POST" in filename:
             post_files.append(f)
             
     post_files.sort()

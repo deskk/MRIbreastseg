@@ -23,8 +23,8 @@ def get_pre_contrast_series(subject_dir):
         filename = os.path.basename(f).lower()
         # DIFFERENCE REPORTED: Original script required both "pre" and "t1" in the filename. 
         # For generalization across datasets (like DUKE) and standardized Phase 0 outputs, 
-        # we check for "pre" or "t1" independently.
-        if "pre" in filename or "t1" in filename:
+        # we strictly require "pre" in the filename.
+        if "pre" in filename:
             return f
     return None
 

@@ -24,7 +24,7 @@ def find_best_slice(mask_arr):
 
 def main():
     config = load_config()
-    fusion_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"]
+    fusion_dir = config["PHASE5"]["OUTPUT_FUSION_LEFT_DIR"] + "_native"
     mri_dir = config["PHASE5"]["OUTPUT_SPLIT_MRI_LEFT_DIR"]
     fig_dir = config["PHASE5"]["OUTPUT_FIGURES_DIR"]
     os.makedirs(fig_dir, exist_ok=True)

@@ -58,7 +58,7 @@ def process_subject(subject_dir, output_root):
     
     # Check if already processed
     expected_files_count = len(glob.glob(os.path.join(out_dir, "*.nii.gz")))
-    if expected_files_count >= 5: # 5 files are expected to be outputted
+    if expected_files_count >= 4: # 4 files are expected to be outputted
         logger.info(f"{subject_id}: Already processed, skipping.")
         return True
     
@@ -70,16 +70,15 @@ def process_subject(subject_dir, output_root):
         return False
     fixed_path = pre_files[0]
     
-    # Moving Dyn: The *first* dynamic phase after PRE.
-    # Exclude PRE and SUB from the search.
+    # Moving Dyn: All dynamic phases after PRE.
+    # Exclude PRE, SUB, and T2 from the search.
     all_dyn_files = glob.glob(os.path.join(subject_dir, "*DYN*.nii.gz"))
     # The variations could be DYNAMIC or DYANAMIC so we match *DYN*
-    dyn_candidates = [f for f in all_dyn_files if "PRE" not in f.upper() and "SUB" not in f.upper()]
-    dyn_candidates.sort() # Alphabetical sort ensuring the first one is selected (e.g. s000005 vs s000007)
+    dyn_candidates = [f for f in all_dyn_files if "PRE" not in f.upper() and "SUB" not in f.upper() and "T2" not in f.upper()]
+    dyn_candidates.sort() # Alphabetical sort ensuring order (e.g. s000005 vs s000007)
     if not dyn_candidates:
-        logger.error(f"{subject_id}: Missing post-contrast DYN image.")
+        logger.error(f"{subject_id}: Missing post-contrast DYN images.")
         return False
-    moving_dyn_path = dyn_candidates[0]
     
     # T1 Structural
     t1_files = glob.glob(os.path.join(subject_dir, "*AX*3D*T1*.nii.gz"))
@@ -88,39 +87,13 @@ def process_subject(subject_dir, output_root):
         logger.error(f"{subject_id}: Missing AX 3D T1 image.")
         return False
     t1_path = t1_files[0]
-    
-    # T2 Structural
-    t2_files = glob.glob(os.path.join(subject_dir, "*T2*SPACE*STIR*.nii.gz"))
-    if not t2_files:
-        logger.error(f"{subject_id}: Missing T2 SPACE STIR image.")
-        return False
-    t2_path = t2_files[0]
 
     try:
         logger.info(f"{subject_id}: Loading images...")
         fixed_img = ants.image_read(fixed_path)
-        moving_dyn_img = ants.image_read(moving_dyn_path)
         t1_img = ants.image_read(t1_path)
-        t2_img = ants.image_read(t2_path)
         
-        # --- Step 1: Intra-Sequence (DCE) Registration ---
-        logger.info(f"{subject_id}: Registering DYN to PRE (SyN)...")
-        # Deformable SyN with MI (Mattes mutual information is the default metric for SyN in ANTsPy)
-        reg_dyn = ants.registration(
-            fixed=fixed_img, 
-            moving=moving_dyn_img, 
-            type_of_transform='SyN',
-            aff_metric='mattes',
-            syn_metric='mattes'
-        )
-        reg_dyn_img = reg_dyn['warpedmovout']
-        
-        # Generate new subtraction map
-        logger.info(f"{subject_id}: Computing subtraction map...")
-        sub_img_array = reg_dyn_img.numpy() - fixed_img.numpy()
-        sub_img = fixed_img.new_image_like(sub_img_array)
-        
-        # --- Step 2: Inter-Sequence (Structural) Registration ---
+        # --- Step 1: Inter-Sequence (Structural) Registration ---
         logger.info(f"{subject_id}: Registering T1 to PRE (SyNRA)...")
         reg_t1 = ants.registration(
             fixed=fixed_img,
@@ -130,46 +103,32 @@ def process_subject(subject_dir, output_root):
             syn_metric='mattes'
         )
         reg_t1_img = reg_t1['warpedmovout']
-
-        logger.info(f"{subject_id}: Registering T2 to PRE (SyNRA)...")
-        reg_t2 = ants.registration(
-            fixed=fixed_img,
-            moving=t2_img,
-            type_of_transform='SyNRA',
-            aff_metric='mattes',
-            syn_metric='mattes'
-        )
-        reg_t2_img = reg_t2['warpedmovout']
         
-        # --- Step 3: Saving Outputs ---
-        logger.info(f"{subject_id}: Saving outputs...")
+        # --- Step 2: Saving Anchor and T1 ---
+        logger.info(f"{subject_id}: Saving anchor and structural outputs...")
+        ants.image_write(fixed_img, os.path.join(out_dir, f"{subject_id}_PRE_registered.nii.gz"))
         
-        # Helper to format output filepath
-        def get_out_path(orig_path, suffix="_registered"):
-            base_name = os.path.basename(orig_path)
-            # handle .nii.gz safely
-            if base_name.endswith('.nii.gz'):
-                name_part = base_name[:-7]
-                ext_part = '.nii.gz'
-            else:
-                name_part, ext_part = os.path.splitext(base_name)
-            return os.path.join(out_dir, f"{name_part}{suffix}{ext_part}")
-
-        # Save the fixed image reference directly to output dir as well for convenience
-        ants.image_write(fixed_img, os.path.join(out_dir, os.path.basename(fixed_path)))
-
-        out_dyn_path = get_out_path(moving_dyn_path, "_registered")
-        ants.image_write(reg_dyn_img, out_dyn_path)
-        
-        # Subtraction is based on the dynamic registered image naming but with SUB suffix
-        out_sub_path = get_out_path(moving_dyn_path, "_registered_SUB")
-        ants.image_write(sub_img, out_sub_path)
-        
-        out_t1_path = get_out_path(t1_path, "_registered")
+        out_t1_path = os.path.join(out_dir, f"{subject_id}_T1_registered.nii.gz")
         ants.image_write(reg_t1_img, out_t1_path)
         
-        out_t2_path = get_out_path(t2_path, "_registered")
-        ants.image_write(reg_t2_img, out_t2_path)
+        # --- Step 3: Intra-Sequence (DCE) Registration for ALL Posts ---
+        for idx, dyn_path in enumerate(dyn_candidates):
+            post_index = idx + 1
+            logger.info(f"{subject_id}: Registering POST{post_index} to PRE (SyN)...")
+            moving_dyn_img = ants.image_read(dyn_path)
+            
+            # Deformable SyN with MI
+            reg_dyn = ants.registration(
+                fixed=fixed_img, 
+                moving=moving_dyn_img, 
+                type_of_transform='SyN',
+                aff_metric='mattes',
+                syn_metric='mattes'
+            )
+            reg_dyn_img = reg_dyn['warpedmovout']
+            
+            out_dyn_path = os.path.join(out_dir, f"{subject_id}_Post{post_index}_registered.nii.gz")
+            ants.image_write(reg_dyn_img, out_dyn_path)
         
         logger.info(f"{subject_id}: Processing complete.")
         return True

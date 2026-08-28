@@ -56,7 +56,7 @@ def main():
     fusion_left_dir = fusion_left_native_dir
     fusion_right_dir = fusion_right_native_dir
     
-    tumor_presence_csv = config["PHASE5"]["OUTPUT_TUMOR_PRESENCE_CSV"]
+    tumor_presence_csv = config["PHASE5"]["OUTPUT_SUMMARY_CSV"]
 
     sides_info = {
         'left': {'label': 1, 'out_mri': out_mri_left, 'out_fusion': fusion_left_dir},
@@ -95,9 +95,9 @@ def main():
             bd_full = sitk.ReadImage(bd_files[0])
             
             # Load full torso MRI
-            mri_full_path = os.path.join(mri_dir, subj, f"{subj}_DYN1_registered.nii.gz")
+            mri_full_path = os.path.join(mri_dir, subj, f"{subj}_Post1_registered.nii.gz")
             if not os.path.exists(mri_full_path):
-                # Fallback to PRE if DYN1 is missing
+                # Fallback to PRE if Post1 is missing
                 mri_full_path = os.path.join(mri_dir, subj, f"{subj}_PRE_registered.nii.gz")
                 if not os.path.exists(mri_full_path):
                     continue
@@ -200,7 +200,7 @@ def main():
             csv_writer.writerow([subj, tumor_status['left'], tumor_status['right']])
             csv_file.flush()
             
-    print("Batch processing complete. Tumor presence saved to tumor_presence.csv.")
+    print("Batch processing complete. Tumor presence saved to birads_and_tumor_summary.csv.")
 
 if __name__ == "__main__":
     main()
